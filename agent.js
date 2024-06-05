@@ -5,7 +5,7 @@ class Agent {
         this.coords = createVector(x, y);
         this.grid_pos = createVector(0, 0);
         this.convert_coords_to_grid_cells();
-        this.r = 12;
+        this.r = 30;
         this.maxspeed = 3; // Maximum speed
         this.maxforce = 0.2; // Maximum steering force
         this.acceleration = createVector(0, 0);
@@ -24,10 +24,85 @@ class Agent {
         this.coords.x = this.theta;
         this.coords.y = sin(this.coords.x) * amplitude + width/2;
 
-        this.convert_coords_to_grid_cells();
+        // this.convert_coords_to_grid_cells();
         console.log(this.coords.x, this.coords.y);
         console.log(this.grid_pos.x, this.grid_pos.y);
       }
+
+    applyBehaviors(agents) {
+
+        let separateForce = this.separate(agents);
+        let seekForce = this.seek(createVector(mouseX, mouseY));
+    
+        separateForce.mult(slider1.value());
+        seekForce.mult(slider2.value());
+    
+        this.applyForce(separateForce);
+        this.applyForce(seekForce);
+    }
+    
+    applyForce(force) {
+        // We could add mass here if we want A = F / M
+        this.acceleration.add(force);
+    }
+
+    // Separation
+    // Method checks for nearby vehicles and steers away
+    separate(vehicles) {
+        let desiredseparation = slider3.value();
+        let sum = createVector();
+        let count = 0;
+        // For every boid in the system, check if it's too close
+        for (let i = 0; i < vehicles.length; i++) {
+        let d = p5.Vector.dist(this.coords, vehicles[i].coords);
+        // If the distance is greater than 0 and less than an arbitrary amount (0 when you are yourself)
+        if ((d > 0) && (d < desiredseparation)) {
+            // Calculate vector pointing away from neighbor
+            let diff = p5.Vector.sub(this.coords, vehicles[i].coords);
+            diff.normalize();
+            diff.div(d); // Weight by distance
+            sum.add(diff);
+            count++; // Keep track of how many
+        }
+        }
+        // Average -- divide by how many
+        if (count > 0) {
+        sum.div(count);
+        // Our desired vector is the average scaled to maximum speed
+        sum.normalize();
+        sum.mult(this.maxspeed);
+        // Implement Reynolds: Steering = Desired - Velocity
+        sum.sub(this.velocity);
+        sum.limit(this.maxforce);
+        }
+        return sum;
+    }
+
+  // A method that calculates a steering force towards a target
+  // STEER = DESIRED MINUS VELOCITY
+    seek(target) {
+        let desired = p5.Vector.sub(target, this.coords); // A vector pointing from the location to the target
+
+        // Normalize desired and scale to maximum speed
+        desired.normalize();
+        desired.mult(this.maxspeed);
+        // Steering = Desired minus velocity
+        let steer = p5.Vector.sub(desired, this.velocity);
+        steer.limit(this.maxforce); // Limit to maximum steering force
+        return steer;
+    }
+
+    // Method to update location
+    update() {
+        // Update velocity
+        this.velocity.add(this.acceleration);
+        // Limit speed
+        this.velocity.limit(this.maxspeed);
+        this.coords.add(this.velocity);
+        // Reset accelertion to 0 each cycle
+        this.acceleration.mult(0);
+        this.convert_coords_to_grid_cells();
+    }
     
     convert_coords_to_grid_cells() {
         this.grid_pos.x = Math.round(
@@ -37,9 +112,31 @@ class Agent {
     }
 
     display() {
+        console.log(
+            this.grid_pos.x,
+            this.grid_pos.y
+        )
+        console.log(
+            this.coords.x,
+            this.coords.y
+        )
         this.grid.display_cell(
             this.grid_pos.x,
             this.grid_pos.y
         );
+    }
+    borders() {
+        if (this.coords.x < this.r) {
+            this.coords.x = width - this.r;
+        }
+        if (this.coords.y < this.r) {
+            this.coords.y = height - this.r;
+        }
+        if (this.coords.x > width - this.r) {
+            this.coords.x = this.r;
+        }
+        if (this.coords.y > height - this.r) {
+            this.coords.y = this.r;
+        }
     }
 }
