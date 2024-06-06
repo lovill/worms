@@ -25,8 +25,12 @@ class Grid {
     }
 
     display_cell(x_cell, y_cell) {
+        // console.log(
+        //     this.grid[x_cell][y_cell].x,
+        //     this.grid[x_cell][y_cell].y,
+        // );
         push();
-        fill('white');
+        fill(255,255,255,230);
         rect(
             this.grid[x_cell][y_cell].x,
             this.grid[x_cell][y_cell].y,
